@@ -93,6 +93,16 @@ function replay(level) {
   assert(LAYOUTS.some((layout) => layout.coords.length >= 144), "catalog includes full 144-tile layouts");
   assert(LAYOUTS.every((layout) => layout.coords.length % 2 === 0), "every layout has an even number of tiles");
   assert(LAYOUTS.every((layout) => Math.max(...layout.coords.map((p) => p.z)) >= 1), "every layout uses multiple layers");
+  for (const layout of LAYOUTS) {
+    for (let i = 0; i < layout.coords.length; i++) {
+      for (let j = i + 1; j < layout.coords.length; j++) {
+        const a = layout.coords[i];
+        const b = layout.coords[j];
+        const overlap = a.z === b.z && a.x < b.x + 2 && b.x < a.x + 2 && a.y < b.y + 2 && b.y < a.y + 2;
+        assert(!overlap, `${layout.id} has no same-layer overlapping tiles`);
+      }
+    }
+  }
 }
 
 // --- generator: levels are built from layouts, use broad picture pool and replay cleanly ---

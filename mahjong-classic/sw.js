@@ -1,7 +1,8 @@
 // Offline-first service worker: precache the app shell, serve from cache,
 // fall back to the network and cache new requests as they appear.
 
-const CACHE = "mahjong-classic-v3";
+const CACHE_PREFIX = "mahjong-classic-";
+const CACHE = `${CACHE_PREFIX}v4`;
 
 const ASSETS = [
   ".",
@@ -29,7 +30,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE).map((k) => caches.delete(k)))
+      )
       .then(() => self.clients.claim())
   );
 });
