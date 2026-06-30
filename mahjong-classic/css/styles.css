@@ -231,11 +231,31 @@ body {
 /* The matching partner the hinted move would clear: a steady green ring so the
    player sees the full pair, not just the tile to act on. */
 .tile.hint-partner {
-  z-index: 3;
+  z-index: 8;
 }
 .tile.hint-partner .tile-face {
-  box-shadow: var(--tile-shadow), 0 0 0 3px rgba(64, 214, 133, 0.9);
+  box-shadow:
+    var(--tile-shadow),
+    0 0 0 5px rgba(64, 214, 133, 0.95),
+    0 0 24px rgba(64, 214, 133, 0.85);
   animation: matchPulse 0.7s ease-in-out infinite;
+}
+.tile.hint-partner::after {
+  content: "✓";
+  position: absolute;
+  right: 5%;
+  top: 2%;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #40d685;
+  color: #082111;
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 /* Direction arrow for a slide hint: a pulsing chevron nudged toward the edge the
    tile should be dragged, so a slide is unambiguous. */
