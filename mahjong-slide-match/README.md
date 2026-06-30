@@ -77,9 +77,16 @@ A completely full board cannot slide (nothing to push into), so the first moves 
 be taps. The generator keeps a few adjacent **tap pairs** (found by a perfect matching
 of the leftover cells) to open up the space the slides need.
 
-Difficulty is tuned by the slide-to-tap ratio: easy keeps about half the board as easy
-tap pairs (many opening moves, forgiving), while hard pushes almost everything to
-group slides, leaving only a handful of tap pairs to bootstrap — far more planning.
+Difficulty is tuned by board size, the slide-to-tap ratio, and how many tiles share
+each picture:
+
+- **Easy** (5×8) and **Medium** (6×10) repeat every picture as two pairs (four tiles),
+  so there are many matching options — friendlier to scan. Easy keeps about half the
+  board as easy tap pairs (many opening moves, forgiving).
+- **Hard** (7×12) and **Expert** (8×12) drop to a single unique pair per picture (two
+  tiles), so there is no duplicate to lean on while scanning, and they push almost
+  everything to group slides, leaving only a handful of tap pairs to bootstrap — far
+  more planning. Expert also packs the most tiles (96) and needs 48 distinct pictures.
 
 Two safeguards mean you never get stuck:
 
