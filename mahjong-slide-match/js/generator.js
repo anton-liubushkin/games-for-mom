@@ -33,24 +33,28 @@ const VEGETABLES = [
   "🥔", "🫑", "🥬", "🍄", "🧄", "🫛", "🍠",
 ];
 const FLOWERS = ["🌸", "🌹", "🌻", "🌷", "🌼", "🌺", "💐", "🏵️", "🪷", "💮", "🥀"];
+const ANIMALS = [
+  "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
+  "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦄", "🐝",
+];
 
-// Master list — used for stable per-symbol colouring in the UI.
-export const SYMBOLS = Object.freeze([...FRUITS, ...VEGETABLES, ...FLOWERS]);
-
-// Each distinct picture is used for two pairs, so the board shows FOUR tiles of
-// every kind. More identical tiles means more matching options, which makes the
-// puzzle a bit easier and friendlier to read.
-const PAIRS_PER_SYMBOL = 2;
+// Master list — used for stable per-symbol colouring in the UI. The pool must
+// hold at least as many distinct pictures as the hardest single-pair board needs
+// (an 8×12 expert board with two tiles per picture asks for 48 distinct ones).
+export const SYMBOLS = Object.freeze([...FRUITS, ...VEGETABLES, ...FLOWERS, ...ANIMALS]);
 
 // Portrait boards (rows > cols) for mobile screens. `slideRatio` is the share of
 // pairs we try to make slide-only: easy keeps about half as easy tap pairs, hard
 // pushes almost everything to slides (only a few tap pairs to open the board).
-// `unique` is the number of distinct pictures (each appears as two pairs / four
-// tiles), i.e. half the pair count.
+// `pairsPerSymbol` controls how many pairs share each picture: 2 means four tiles
+// of every kind (more matching options, friendlier), 1 means a single unique pair
+// per picture (no ambiguity to lean on — far harder to scan). The two hardest
+// levels drop to a single pair and the expert board also packs the most tiles.
 export const LEVELS = Object.freeze({
-  easy: { label: "Лёгкая", cols: 5, rows: 8, unique: 10, pool: SYMBOLS, slideRatio: 0.5 },
-  medium: { label: "Средняя", cols: 6, rows: 10, unique: 15, pool: SYMBOLS, slideRatio: 0.8 },
-  hard: { label: "Сложная", cols: 7, rows: 12, unique: 21, pool: SYMBOLS, slideRatio: 0.97 },
+  easy: { label: "Лёгкая", cols: 5, rows: 8, pool: SYMBOLS, slideRatio: 0.5, pairsPerSymbol: 2 },
+  medium: { label: "Средняя", cols: 6, rows: 10, pool: SYMBOLS, slideRatio: 0.8, pairsPerSymbol: 2 },
+  hard: { label: "Сложная", cols: 7, rows: 12, pool: SYMBOLS, slideRatio: 0.97, pairsPerSymbol: 1 },
+  expert: { label: "Эксперт", cols: 8, rows: 12, pool: SYMBOLS, slideRatio: 0.98, pairsPerSymbol: 1 },
 });
 
 const GENERATION_ATTEMPTS = 12;
@@ -340,15 +344,16 @@ function solutionClears(grid, solution) {
 }
 
 // A shuffled list of `pairs` symbols where each picture is repeated
-// PAIRS_PER_SYMBOL times, so the board ends up with four tiles of each kind. If
-// `pairs` is not a multiple of PAIRS_PER_SYMBOL the trailing picture appears fewer
-// times — never an odd tile, since the count is always a whole number of pairs.
-function pickPairSymbols(pool, pairs, rng) {
-  const distinct = Math.ceil(pairs / PAIRS_PER_SYMBOL);
+// `pairsPerSymbol` times, so the board ends up with `pairsPerSymbol * 2` tiles of
+// each kind. If `pairs` is not a multiple of `pairsPerSymbol` the trailing picture
+// appears fewer times — never an odd tile, since the count is always a whole
+// number of pairs.
+function pickPairSymbols(pool, pairs, rng, pairsPerSymbol) {
+  const distinct = Math.ceil(pairs / pairsPerSymbol);
   const picks = shuffle(pool.slice(), rng).slice(0, distinct);
   const list = [];
   for (const sym of picks) {
-    for (let k = 0; k < PAIRS_PER_SYMBOL; k++) list.push(sym);
+    for (let k = 0; k < pairsPerSymbol; k++) list.push(sym);
   }
   return shuffle(list, rng).slice(0, pairs);
 }
@@ -362,23 +367,23 @@ export function generateLevel(difficulty, rng = Math.random) {
   const cfg = LEVELS[difficulty];
   if (!cfg) throw new Error(`Unknown difficulty: ${difficulty}`);
 
-  const { rows, cols, pool, slideRatio } = cfg;
+  const { rows, cols, pool, slideRatio, pairsPerSymbol } = cfg;
   const pairs = (rows * cols) / 2;
-  const distinct = Math.ceil(pairs / PAIRS_PER_SYMBOL);
+  const distinct = Math.ceil(pairs / pairsPerSymbol);
   if (pool.length < distinct) throw new Error(`Symbol pool too small for ${difficulty}`);
 
   let built = null;
   // Pack slides aggressively; a dense pack occasionally strands an untileable
   // remainder, so just try a few fresh boards.
   for (let attempt = 0; attempt < GENERATION_ATTEMPTS && !built; attempt++) {
-    const symbols = pickPairSymbols(pool, pairs, rng);
+    const symbols = pickPairSymbols(pool, pairs, rng, pairsPerSymbol);
     const candidate = build(rows, cols, symbols, rng, slideRatio, false);
     if (candidate && solutionClears(candidate.grid, candidate.solution)) built = candidate;
   }
   if (!built) {
     // Guaranteed fallback: keeping every step domino-tileable always succeeds
     // (slightly fewer slides, never a slide-poor or unsolvable board).
-    const symbols = pickPairSymbols(pool, pairs, rng);
+    const symbols = pickPairSymbols(pool, pairs, rng, pairsPerSymbol);
     built = build(rows, cols, symbols, rng, slideRatio, true);
   }
 

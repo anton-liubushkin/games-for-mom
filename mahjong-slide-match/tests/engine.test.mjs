@@ -253,11 +253,12 @@ function referenceMap(level) {
   return ref;
 }
 
-// --- generator: full board, four tiles per picture, portrait, solvable via reference solution ---
+// --- generator: full board, configured tiles per picture, portrait, solvable via reference solution ---
 for (const difficulty of Object.keys(LEVELS)) {
   const cfg = LEVELS[difficulty];
   const total = cfg.rows * cfg.cols;
-  const expectedUnique = total / 4; // two pairs (four tiles) per picture
+  const tilesPerSymbol = cfg.pairsPerSymbol * 2; // one pair = two tiles
+  const expectedUnique = total / tilesPerSymbol;
   let ok = true;
   for (let i = 0; i < 5; i++) {
     const level = generateLevel(difficulty);
@@ -267,7 +268,7 @@ for (const difficulty of Object.keys(LEVELS)) {
     for (const row of level.grid) {
       for (const cell of row) counts.set(cell.type, (counts.get(cell.type) || 0) + 1);
     }
-    for (const n of counts.values()) if (n !== 4) ok = false; // two pairs per picture
+    for (const n of counts.values()) if (n !== tilesPerSymbol) ok = false; // configured pairs per picture
     if (counts.size !== expectedUnique) ok = false;
 
     // the bundled reference solution (taps AND slides) actually clears the board
@@ -299,16 +300,23 @@ for (const difficulty of Object.keys(LEVELS)) {
   assert(hardDrags > easyDrags, "hard needs more slides than easy");
 }
 
-// --- difficulty: each picture is used for two pairs and the board is portrait ---
+// --- difficulty: the symbol pool covers the distinct pictures each board needs, portrait ---
 for (const difficulty of Object.keys(LEVELS)) {
   const cfg = LEVELS[difficulty];
-  assert(cfg.unique === (cfg.rows * cfg.cols) / 4, `${difficulty} uses each picture for two pairs (four tiles)`);
+  const distinct = Math.ceil((cfg.rows * cfg.cols) / 2 / cfg.pairsPerSymbol);
+  assert(cfg.pool.length >= distinct, `${difficulty} symbol pool covers its ${distinct} distinct pictures`);
   assert(cfg.rows > cfg.cols, `${difficulty} board is portrait (rows > cols)`);
 }
+
+// --- difficulty: the two hardest levels use a single (unique) pair per picture ---
+assert(LEVELS.hard.pairsPerSymbol === 1, "hard uses one pair (two tiles) per picture");
+assert(LEVELS.expert.pairsPerSymbol === 1, "expert uses one pair (two tiles) per picture");
+assert(LEVELS.easy.pairsPerSymbol === 2 && LEVELS.medium.pairsPerSymbol === 2, "easier levels keep four tiles per picture");
 
 // --- difficulty escalates board size with a clear step ---
 assert(LEVELS.easy.rows * LEVELS.easy.cols < LEVELS.medium.rows * LEVELS.medium.cols, "medium is bigger than easy");
 assert(LEVELS.medium.rows * LEVELS.medium.cols < LEVELS.hard.rows * LEVELS.hard.cols, "hard is bigger than medium");
+assert(LEVELS.hard.rows * LEVELS.hard.cols < LEVELS.expert.rows * LEVELS.expert.cols, "expert is bigger than hard");
 
 // --- difficulty: easy leans on simple tap pairs, hard forces slides (averaged) ---
 {

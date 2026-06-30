@@ -1,7 +1,7 @@
 // Offline-first service worker: precache the app shell, serve from cache,
 // fall back to the network and cache new requests as they appear.
 
-const CACHE = "mahjong-slide-v20";
+const CACHE = "mahjong-slide-v21";
 
 const ASSETS = [
   ".",
