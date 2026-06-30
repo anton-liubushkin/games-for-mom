@@ -215,6 +215,41 @@ body {
 .tile.hint .tile-face {
   animation: hintPulse 0.7s ease-in-out 3;
 }
+/* The matching partner the hinted move would clear: a steady green ring so the
+   player sees the full pair, not just the tile to act on. */
+.tile.hint-partner {
+  z-index: 3;
+}
+.tile.hint-partner .tile-face {
+  box-shadow: var(--tile-shadow), 0 0 0 3px rgba(64, 214, 133, 0.9);
+  animation: matchPulse 0.7s ease-in-out infinite;
+}
+/* Direction arrow for a slide hint: a pulsing chevron nudged toward the edge the
+   tile should be dragged, so a slide is unambiguous. */
+.tile[data-hint-dir]::after {
+  content: "➜";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(18px, 6vw, 30px);
+  font-weight: 700;
+  color: var(--accent);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+  z-index: 6;
+  pointer-events: none;
+  animation: hintArrow 0.8s ease-in-out infinite;
+}
+.tile[data-hint-dir="right"]::after { --arrow-rot: 0deg; }
+.tile[data-hint-dir="left"]::after { --arrow-rot: 180deg; }
+.tile[data-hint-dir="down"]::after { --arrow-rot: 90deg; }
+.tile[data-hint-dir="up"]::after { --arrow-rot: -90deg; }
+
+@keyframes hintArrow {
+  0%, 100% { transform: rotate(var(--arrow-rot, 0deg)) translateX(0); opacity: 0.75; }
+  50% { transform: rotate(var(--arrow-rot, 0deg)) translateX(28%); opacity: 1; }
+}
 .tile.selectable {
   z-index: 4;
   cursor: pointer;
@@ -449,5 +484,13 @@ body {
   .tile.selectable .tile-face {
     animation: none;
     box-shadow: var(--tile-shadow), 0 0 0 4px rgba(179, 136, 255, 0.7);
+  }
+  .tile.hint-partner .tile-face {
+    animation: none;
+    box-shadow: var(--tile-shadow), 0 0 0 4px rgba(64, 214, 133, 0.85);
+  }
+  .tile[data-hint-dir]::after {
+    animation: none;
+    transform: rotate(var(--arrow-rot, 0deg));
   }
 }

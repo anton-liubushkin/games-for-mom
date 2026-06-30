@@ -91,8 +91,14 @@ each picture:
 Two safeguards mean you never get stuck:
 
 - **Hint** uses the bundled solution for an instant on-path move; if you have strayed
-  off that path it runs a bounded solver to find another safe move.
-- **Undo** steps back through your moves, so a dead end is always recoverable.
+  off that path it runs a bounded solver to find another safe move. It shows the move
+  so it is actually followable: the tile to act on pulses, its matching partner gets a
+  green ring, and a slide also lights its landing lane with a direction arrow. If the
+  solver proves no solution remains, the hint says so up front — the board is a dead end.
+- **Undo** steps back through your moves. Once a hint has flagged a dead end, a single
+  **Undo** rewinds straight to the most recent solvable position (popping as many moves
+  as it takes), so escaping a dead end never means tapping Undo over and over. The rewind
+  always succeeds because the starting board is solvable by construction.
 
 ## Project structure
 
