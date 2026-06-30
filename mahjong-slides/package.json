@@ -1,0 +1,11 @@
+{
+  "name": "mahjong-slide-match",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline-first Mahjong Slide Match PWA. All game logic on the client.",
+  "scripts": {
+    "test": "node tests/engine.test.mjs",
+    "serve": "python3 -m http.server 8000"
+  }
+}
