@@ -2,7 +2,13 @@
 // Knows nothing about game rules — it only draws state and reports user intent.
 
 import { SYMBOLS } from "./generator.js";
-import { DIRECTIONS, getDirectionalGroup, computeShift, previewMove } from "./engine.js";
+import {
+  DIRECTIONS,
+  getDirectionalGroup,
+  computeShift,
+  previewMove,
+  nearestPartners,
+} from "./engine.js";
 
 // Pale pastel background per symbol, derived from its index so the same symbol
 // always gets the same colour and the palette scales to any number of symbols.
@@ -139,13 +145,47 @@ export class BoardView {
     setTimeout(() => el.classList.remove(cls), ms);
   }
 
-  highlightHint({ r, c }) {
-    const el = this._elementAt(r, c);
-    if (!el) return;
-    el.classList.remove("hint");
-    void el.offsetWidth; // restart the animation
-    el.classList.add("hint");
-    setTimeout(() => el.classList.remove("hint"), 2200);
+  // Show the suggested move so it is actually followable: pulse the tile to act
+  // on, ring its matching partner green, and — for a slide — light the landing
+  // lane and point an arrow in the drag direction (a bare tile pulse left the
+  // player guessing how to play a slide, which is how boards drifted into dead
+  // ends). Everything clears together after the pulse.
+  highlightHint(move, grid) {
+    const HINT_MS = 2300;
+    this._clearHint();
+
+    const src = this._elementAt(move.r, move.c);
+    if (src) {
+      this._restartClass(src, "hint", HINT_MS);
+      if (move.kind === "drag") src.dataset.hintDir = move.dir;
+    }
+
+    let partner = move.chosen || null;
+    if (move.kind === "drag") {
+      const { dest, partners } = previewMove(grid, move.r, move.c, move.dir, move.steps);
+      if (!partner) partner = partners[0] || null;
+      this.rowBar.style.setProperty("--gr", dest.r);
+      this.colBar.style.setProperty("--gc", dest.c);
+      this.rowBar.classList.add("show");
+      this.colBar.classList.add("show");
+    } else if (!partner) {
+      partner = nearestPartners(grid, move.r, move.c).partners[0] || null;
+    }
+
+    if (partner) this._elementAt(partner.r, partner.c)?.classList.add("hint-partner");
+
+    clearTimeout(this._hintTimer);
+    this._hintTimer = setTimeout(() => this._clearHint(), HINT_MS);
+  }
+
+  _clearHint() {
+    this._clearDragGuide();
+    for (const el of this.tiles.querySelectorAll(".tile.hint-partner")) {
+      el.classList.remove("hint-partner");
+    }
+    for (const el of this.tiles.querySelectorAll(".tile[data-hint-dir]")) {
+      delete el.dataset.hintDir;
+    }
   }
 
   // Highlight the tiles the player can choose between to complete a match.

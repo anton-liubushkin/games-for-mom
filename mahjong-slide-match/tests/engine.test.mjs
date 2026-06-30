@@ -13,6 +13,7 @@ import {
   stateKey,
   solve,
   findSafeHint,
+  isSolvable,
   countTiles,
   isCleared,
 } from "../js/engine.js";
@@ -241,6 +242,35 @@ function makeGrid(rows) {
     cur = applyAction(cur, action);
   }
   assert(findSafeHint(board, reference) === reference.get(stateKey(board)), "reference map provides the canonical hint");
+}
+
+// --- isSolvable: agrees with the hint oracle and uses the reference shortcut ---
+{
+  assert(isSolvable(makeGrid(["AA."])) === true, "a one-pair board is solvable");
+  assert(isSolvable(makeGrid(["AB", "CD"])) === false, "a deadlocked board is not solvable");
+
+  const board = makeGrid([
+    ".A.D",
+    "CB.C",
+    ".DBA",
+  ]);
+  assert(isSolvable(board) === (findSafeHint(board) !== null), "isSolvable agrees with findSafeHint");
+
+  // A state on the reference path is reported solvable without invoking the solver.
+  const sol = solve(board);
+  const reference = new Map();
+  let cur = board;
+  for (const action of sol) {
+    reference.set(stateKey(cur), action);
+    cur = applyAction(cur, action);
+  }
+  assert(isSolvable(board, reference) === true, "a state on the reference path is solvable in O(1)");
+
+  // Smart-undo invariant: the freshly generated board is always solvable, so
+  // rewinding out of a dead end is guaranteed to reach a solvable state.
+  for (const difficulty of Object.keys(LEVELS)) {
+    assert(isSolvable(generateLevel(difficulty).grid), `${difficulty} starts solvable (smart-undo always terminates)`);
+  }
 }
 
 function referenceMap(level) {

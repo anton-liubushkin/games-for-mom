@@ -9,6 +9,7 @@ import {
   applyAction,
   stateKey,
   findSafeHint,
+  isSolvable,
 } from "./engine.js";
 import { generateLevel, LEVELS } from "./generator.js";
 import { BoardView } from "./ui.js";
@@ -32,7 +33,10 @@ const state = {
   moves: 0, // counted only for the win message, not shown live
   history: [], // grid snapshots before each committed move (in-memory undo)
   selection: null, // { active, candidates, pushed } while picking a match
+  deadEnd: false, // set when a hint proves the board can no longer be cleared
 };
+
+const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 // Map every state along the canonical solution to its next action, so hints on
 // the intended path are instant. Off-path states fall back to the solver.
@@ -84,6 +88,7 @@ function newGame(difficulty) {
   state.reference = buildReference(state.initialGrid, state.solution);
   state.moves = 0;
   state.history = [];
+  state.deadEnd = false;
   cancelSelection();
   view.setLevel(level.rows, level.cols);
   view.renderAll(state.grid);
@@ -101,6 +106,7 @@ function restoreGame(data) {
   state.reference = buildReference(state.initialGrid, state.solution);
   state.moves = data.moves || 0;
   state.history = [];
+  state.deadEnd = false;
   cancelSelection();
   view.setLevel(state.grid.length, state.grid[0].length);
   view.renderAll(state.grid);
@@ -113,15 +119,50 @@ function pushHistory() {
   state.history.push(cloneGrid(state.grid));
 }
 
-function undo() {
-  if (!view.interactive || state.history.length === 0) return;
-  cancelSelection();
+function undoStep() {
   state.grid = state.history.pop();
   state.moves = Math.max(0, state.moves - 1);
+}
+
+// Undo. Normally a single step; but once a hint has proven the board is a dead
+// end, one press rewinds straight to the most recent solvable position (popping
+// however many moves that takes). The rewind always terminates because the very
+// first board is solvable by construction.
+async function undo() {
+  if (!view.interactive || state.history.length === 0) return;
+  cancelSelection();
+
+  if (state.deadEnd) {
+    await escapeDeadEnd();
+  } else {
+    undoStep();
+  }
+
+  state.deadEnd = false;
   view.renderAll(state.grid);
   hideOverlay();
   refreshUI();
   save();
+}
+
+// Pop committed moves until the board can be solved again. The solver can take a
+// moment, so we yield between steps (keeping the board non-interactive) and show
+// progress, rather than freezing the UI.
+async function escapeDeadEnd() {
+  view.setInteractive(false);
+  toast("Возвращаемся к решаемому ходу…");
+  await tick();
+
+  let undone = 0;
+  while (state.history.length > 0) {
+    undoStep();
+    undone += 1;
+    if (isSolvable(state.grid, state.reference)) break;
+    await tick();
+  }
+
+  view.setInteractive(true);
+  toast(`Отменено ходов: ${undone} — выход из тупика.`);
 }
 
 // ---------- match selection (player picks among equidistant partners) ----------
@@ -223,8 +264,13 @@ async function handleMove(r, c, dir, steps) {
 function hint() {
   if (!view.interactive) return;
   const move = findSafeHint(state.grid, state.reference);
-  if (move) view.highlightHint(move);
-  else toast("Этот ход ведёт в тупик — нажмите «Отменить».");
+  if (move) {
+    state.deadEnd = false;
+    view.highlightHint(move, state.grid);
+  } else {
+    state.deadEnd = true;
+    toast("Тупик: отсюда не решить. Нажмите «Отменить» — вернёмся к решаемому ходу.");
+  }
 }
 
 // ---------- UI helpers ----------

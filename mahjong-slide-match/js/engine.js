@@ -373,6 +373,17 @@ export function solve(grid, { budget = 100000 } = {}) {
 }
 
 /**
+ * Whether the board can still be cleared. A state on the canonical `reference`
+ * path is solvable by definition (O(1)); otherwise the bounded solver decides.
+ * Used to detect dead ends on a hint and to drive the "undo out of a dead end"
+ * action — both share this single oracle so they always agree.
+ */
+export function isSolvable(grid, reference = null) {
+  if (reference && reference.has(stateKey(grid))) return true;
+  return solve(grid) !== null;
+}
+
+/**
  * A hint that always lies on a real solution path. When a `reference` map
  * (stateKey -> action) is supplied and contains the current state, that move is
  * returned in O(1). Otherwise the board is solved on demand and the first move
