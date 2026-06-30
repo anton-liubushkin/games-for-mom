@@ -190,6 +190,7 @@ function refreshUI() {
   $("btn-undo").disabled = state.history.length === 0;
   $("level-name").textContent = state.layout ? state.layout.label : "";
   $("moves").textContent = String(state.moves);
+  $("moves-word").textContent = plural(state.moves);
 }
 
 function renderDifficultyOptions() {
