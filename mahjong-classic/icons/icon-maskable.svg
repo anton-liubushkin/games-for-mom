@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2350"/>
+      <stop offset="1" stop-color="#0b0e1f"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e7ecff"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ea8fe"/>
+      <stop offset="1" stop-color="#b388ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- safe-zone centered tile (~60%) for maskable icons -->
+  <rect x="176" y="156" width="160" height="200" rx="30" fill="url(#tile)"/>
+  <rect x="176" y="156" width="160" height="200" rx="30" fill="none" stroke="url(#glow)" stroke-width="5" opacity="0.7"/>
+
+  <g fill="#e23b3b">
+    <rect x="222" y="226" width="92" height="74" rx="8" fill="none" stroke="#e23b3b" stroke-width="18"/>
+    <rect x="248" y="190" width="20" height="134" rx="6"/>
+  </g>
+</svg>
