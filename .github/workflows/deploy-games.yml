@@ -1,0 +1,81 @@
+name: Deploy games to heyanton.ru
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-games
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Discover game folders
+        id: games
+        run: |
+          games=()
+          for dir in */; do
+            name="${dir%/}"
+            case "$name" in
+              .github) continue ;;
+            esac
+            if [ -f "${dir}index.html" ]; then
+              games+=("$name")
+            fi
+          done
+          if [ "${#games[@]}" -eq 0 ]; then
+            echo "No game folders with index.html found."
+            exit 1
+          fi
+          printf '%s\n' "${games[@]}"
+          {
+            echo "list<<EOF"
+            printf '%s\n' "${games[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Deploy games via rsync
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          while IFS= read -r game; do
+            [ -n "$game" ] || continue
+            echo "Deploying ${game}..."
+            rsync -az --delete \
+              --exclude node_modules/ \
+              --exclude tests/ \
+              --exclude .DS_Store \
+              --exclude '*.log' \
+              -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+              "${game}/" \
+              "${SSH_USER}@${SSH_HOST}:${DEPLOY_PATH}/${game}/"
+          done <<< "${{ steps.games.outputs.list }}"
+
+      - name: Fix ownership on server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            "${SSH_USER}@${SSH_HOST}" \
+            "chown -R www-data:www-data '${DEPLOY_PATH}'"
+
+      - name: Remove deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
